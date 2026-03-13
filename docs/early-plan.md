@@ -38,9 +38,10 @@ This library was designed after a deep study of four production UI libraries:
 | **Base primitive** | `@base-ui/react` | ✅ Confirmed |
 | **Styling** | Tailwind CSS v4 | ✅ Confirmed |
 | **Animation** | `motion/react` (Motion v12) | ✅ Confirmed |
+| **Icon library** | Hugeicons (`@hugeicons/react`) | ✅ Confirmed |
 | **Package manager** | pnpm | ✅ Confirmed |
-| **Linter** | Biome | ✅ Confirmed (replaces Oxlint) |
-| **Formatter** | Biome | ✅ Confirmed (replaces Oxfmt, which is not released) |
+| **Linter** | Biome | ✅ Confirmed |
+| **Formatter** | Biome | ✅ Confirmed |
 | **Monorepo** | No | ✅ Confirmed |
 | **Docs framework** | Fumadocs | ✅ Confirmed |
 | **Registry format** | shadcn registry (`shadcn build`) | ✅ Confirmed |
@@ -55,7 +56,7 @@ This library was designed after a deep study of four production UI libraries:
 
 ### Why Biome for Everything
 
-Oxfmt is not production-ready as of March 2026. Biome handles both linting (~300+ rules) and formatting in a single Rust-based tool, with zero config required. This is the same setup used by coss ui. One config file (`biome.json`), one command (`biome check --write .`), no conflicts between two tools.
+Oxfmt is not production-ready as of March 2026. Biome handles both linting (~300+ rules) and formatting in a single Rust-based tool. One config file (`biome.json`), one command (`biome check --write .`), no conflicts between two tools. Same setup used by coss ui.
 
 ---
 
@@ -104,6 +105,9 @@ pnpm add next-themes
 
 # Docs framework
 pnpm add fumadocs-core fumadocs-mdx fumadocs-ui
+
+# Icon library (two packages required)
+pnpm add @hugeicons/react @hugeicons/core-free-icons
 
 # Linter + Formatter
 pnpm add -D @biomejs/biome
@@ -159,16 +163,114 @@ your-ui-library/
 
 ### Key Structure Decisions (from Next.js docs)
 
-- **Route groups `(group)`** — Used to separate `(docs)` and `(home)` without polluting URLs. Each can have its own layout. The `(docs)` group gets the Fumadocs sidebar layout; the `(home)` group gets a full-bleed landing layout.
-- **`app/` is routing-only** — All logic, components, hooks, and utils live outside `app/` in top-level folders. This is the "store project files outside of app" strategy recommended by Next.js.
-- **Private folders `_folder`** — Not needed since we keep non-routable code outside `app/` entirely.
-- **`components/ui/`** — The distributable component files. This is separate from `registry/default/ui/` because the registry source may include internal metadata; `components/ui/` is what gets copied to user projects.
-- **`content/docs/`** — Fumadocs convention for MDX source files, resolved via `lib/source.ts`.
-- **`public/r/`** — The built registry is served as static JSON from Vercel, enabling `pnpm dlx shadcn add [component-url]` installs.
+- **Route groups `(group)`** — Separate `(docs)` and `(home)` without polluting URLs. Each has its own layout.
+- **`app/` is routing-only** — All logic, components, hooks, and utils live outside `app/` in top-level folders.
+- **`components/ui/`** — Distributable component files, separate from registry source.
+- **`content/docs/`** — Fumadocs MDX source files, resolved via `lib/source.ts`.
+- **`public/r/`** — Built registry served as static JSON from Vercel.
 
 ---
 
-## 6. Base UI: Composition & Customization Rules
+## 6. Icon Library: Hugeicons
+
+*Docs: [hugeicons.com/docs/integrations/react/quick-start](https://hugeicons.com/docs/integrations/react/quick-start)*
+
+### Why Hugeicons
+- 4,600+ free stroke-rounded icons in the free tier, 46,000+ across 10 styles in Pro
+- Pixel-perfect on a consistent 24x24 grid
+- Fully tree-shakeable — only imported icons land in the bundle
+- Full TypeScript support
+- Supports `altIcon` prop for state-toggle animations (e.g. Sun ↔ Moon)
+- Has an MCP server for AI-assisted icon discovery
+
+### ⚠️ Deprecated Package — Do Not Use
+
+```bash
+# ❌ DEPRECATED — do not install
+npm install hugeicons-react
+```
+
+The old `hugeicons-react` package is no longer maintained. Always use the new split packages.
+
+### Correct Installation
+
+```bash
+pnpm add @hugeicons/react @hugeicons/core-free-icons
+```
+
+Two packages are always required:
+- `@hugeicons/react` — the React wrapper (`HugeiconsIcon` component)
+- `@hugeicons/core-free-icons` — the free icon assets (4,600+ stroke-rounded icons)
+
+### Usage Pattern
+
+```tsx
+import { HugeiconsIcon } from '@hugeicons/react';
+import { SearchIcon, HomeIcon } from '@hugeicons/core-free-icons';
+
+// Basic usage
+<HugeiconsIcon icon={SearchIcon} />
+
+// With explicit size and color
+<HugeiconsIcon icon={HomeIcon} size={20} color="currentColor" strokeWidth={1.5} />
+
+// State-toggle with altIcon (e.g. theme toggle)
+import { SunIcon, MoonIcon } from '@hugeicons/core-free-icons';
+<HugeiconsIcon icon={SunIcon} altIcon={MoonIcon} showAlt={isDark} />
+```
+
+### Icon Sizing Rules (Tailwind Integration)
+
+Unlike `lucide-react` (which uses `className="size-4"`), Hugeicons uses a **`size` prop** on the `HugeiconsIcon` wrapper, not Tailwind classes on the SVG directly.
+
+```tsx
+// ✅ Correct — use size prop
+<HugeiconsIcon icon={SearchIcon} size={16} color="currentColor" />
+<HugeiconsIcon icon={SearchIcon} size={20} color="currentColor" />
+
+// ❌ Do not try to size with Tailwind className on HugeiconsIcon
+<HugeiconsIcon icon={SearchIcon} className="size-4" /> // won't work as expected
+```
+
+**Standard size values:**
+- `size={16}` — small (equivalent to `size-4`)
+- `size={20}` — default UI size (equivalent to `size-5`)
+- `size={24}` — default Hugeicons grid size
+- `size={32}` — large / feature icons
+
+**Always use `color="currentColor"`** so icons inherit text color and respond to dark mode automatically.
+
+### Accessibility Rules for Hugeicons
+
+- Decorative icons: always add `aria-hidden="true"` on the wrapper element or its parent
+- Semantic icons (e.g. alert severity): do NOT hide from screen readers
+- Icon-only buttons: `aria-label` on the `<button>`, `aria-hidden="true"` on the icon
+
+```tsx
+// ✅ Decorative icon in a button with text
+<button>
+  <span aria-hidden="true">
+    <HugeiconsIcon icon={PlusIcon} size={16} color="currentColor" />
+  </span>
+  Add item
+</button>
+
+// ✅ Icon-only button
+<button aria-label="Close">
+  <HugeiconsIcon icon={XmarkIcon} size={16} color="currentColor" aria-hidden="true" />
+</button>
+```
+
+### Import Rules (AGENTS.md)
+
+- Always named imports from `@hugeicons/core-free-icons`
+- Never import the entire package (`import * from '@hugeicons/core-free-icons'`)
+- Always pair with the `HugeiconsIcon` wrapper from `@hugeicons/react`
+- Do not use the deprecated `hugeicons-react` package under any circumstances
+
+---
+
+## 7. Base UI: Composition & Customization Rules
 
 *Source: [base-ui.com/react/handbook/composition](https://base-ui.com/react/handbook/composition) and [base-ui.com/react/handbook/customization](https://base-ui.com/react/handbook/customization)*
 
@@ -199,9 +301,7 @@ The custom component passed to `render` **must** forward its `ref` and spread al
 </Menu.Item>
 ```
 
-### Render Function (Performance Escape Hatch)
-
-For performance-sensitive cases or state-dependent rendering, pass a function:
+### Render Function (State-Dependent Rendering)
 
 ```tsx
 <Switch.Thumb
@@ -213,55 +313,17 @@ For performance-sensitive cases or state-dependent rendering, pass a function:
 />
 ```
 
-This gives full control over prop spreading and enables rendering based on component state.
-
-### Nested Composition
-
-```tsx
-<Dialog.Root>
-  <Tooltip.Root>
-    <Tooltip.Trigger
-      render={
-        <Dialog.Trigger
-          render={<Menu.Trigger render={<MyButton />}>Open</Menu.Trigger>}
-        />
-      }
-    />
-  </Tooltip.Root>
-</Dialog.Root>
-```
-
 ### Base UI Event System
 
-Base UI uses custom change events with a second `eventDetails` argument — not standard DOM events:
-
 ```tsx
-// Signature
 onOpenChange: (open: boolean, eventDetails: BaseUIChangeEventDetails) => void
-onValueChange: (value, eventDetails) => void
-onPressedChange: (pressed, eventDetails) => void
 ```
 
 The `eventDetails` object exposes:
 - `reason` — why the change occurred (e.g. `'trigger-press'`, `'escape-key'`)
 - `event` — the native DOM event
-- `cancel()` — prevent internal state update (alternative to full controlled mode)
-- `allowPropagation()` — allow DOM event to propagate (e.g. Escape key past nested popups)
-
-```tsx
-// Cancel a tooltip from closing on trigger press
-<Tooltip.Root
-  onOpenChange={(open, { reason, cancel }) => {
-    if (reason === 'trigger-press') cancel();
-  }}
-/>
-```
-
-### Controlled vs Uncontrolled
-
-- Components are **uncontrolled by default** — they manage their own state
-- Make controlled by passing `open`/`value` + `onOpenChange`/`onValueChange`
-- `cancel()` is an alternative to full controlled mode for simple cases
+- `cancel()` — prevent internal state update
+- `allowPropagation()` — allow DOM event to propagate
 
 ### Preventing Base UI from Handling React Events
 
@@ -275,9 +337,9 @@ The `eventDetails` object exposes:
 
 ---
 
-## 7. Base UI: Full Component Index
+## 8. Base UI: Full Component Index
 
-*Source: [base-ui.com/llms.txt](https://base-ui.com/llms.txt) — to be used as the ground truth for all component availability checks.*
+*Source: [base-ui.com/llms.txt](https://base-ui.com/llms.txt) — ground truth for all component availability checks.*
 
 **Latest stable release:** v1.2.0 (Feb 12, 2026)
 
@@ -344,9 +406,9 @@ The `eventDetails` object exposes:
 
 ---
 
-## 8. AGENTS.md Rules (To Be Written)
+## 9. AGENTS.md Rules (To Be Written)
 
-An `AGENTS.md` file must be created at the repo root. It will be modeled after coss ui's guide and include all the following confirmed rules.
+An `AGENTS.md` file must be created at the repo root. It will be modeled after coss ui's guide.
 
 ### File & Naming
 - All distributable components live in `components/ui/`
@@ -360,9 +422,11 @@ An `AGENTS.md` file must be created at the repo root. It will be modeled after c
 - Never add as a default — it must be justified
 
 ### Import Rules
-- Icons: named imports from `lucide-react` only — never `import *`
+- Icons: named imports from `@hugeicons/core-free-icons` only — never `import *`
+- Icon wrapper: always `HugeiconsIcon` from `@hugeicons/react`
+- Never use the deprecated `hugeicons-react` package
 - React hooks: named imports — never `import * as React`
-- Base UI: named imports from `@base-ui/react/{component}` (e.g. `import { Menu } from '@base-ui/react/menu'`)
+- Base UI: named imports from `@base-ui/react/{component}`
 - Utilities: always from `@/lib/utils`
 
 ### Composition Rules (Base UI)
@@ -373,32 +437,34 @@ An `AGENTS.md` file must be created at the repo root. It will be modeled after c
 - Use `eventDetails.cancel()` as an alternative to full controlled mode
 - Use `event.preventBaseUIHandler()` to prevent Base UI from handling React events
 
+### Icon Rules
+- Always use `size` prop on `HugeiconsIcon` — do not size via Tailwind className
+- Always use `color="currentColor"` for dark mode compatibility
+- Decorative icons: wrap in `<span aria-hidden="true">` or pass `aria-hidden` directly
+- Icon-only buttons: `aria-label` on the button, icon is decorative
+- Semantic icons (alerts): do NOT hide from screen readers
+
 ### Styling Rules
-- Use semantic color tokens only — never raw Tailwind colors (`text-gray-500` ❌, `text-muted-foreground` ✅)
+- Use semantic color tokens only — never raw Tailwind colors
 - Never write `border-border` — it is the default
 - Use `in-[[data-slot=button]:hover]:` pattern instead of `group`/`group-hover:`
-- Use `!` suffix for Tailwind important overrides (e.g. `h-auto!`)
-- Dark mode via CSS custom properties + `@variant dark (&:where(.dark, .dark *))` in globals.css
+- Use `!` suffix for Tailwind important overrides
+- Dark mode via `@variant dark (&:where(.dark, .dark *))` in globals.css
 
 ### Accessibility Rules
 - Every interactive component must have correct ARIA roles, states, properties
-- Full keyboard navigation required: Tab, Arrow keys, Escape, Enter/Space
+- Full keyboard navigation: Tab, Arrow keys, Escape, Enter/Space
 - `aria-label` for icon-only interactive elements
-- `aria-hidden="true"` for decorative icons
-- Alert icons are semantic — do NOT `aria-hidden` them
+- Alert icons are semantic — do NOT hide from screen readers
 - Always specify `type` on every `<Input>` (even `type="text"`)
-- Checkbox/Radio/Switch: wrap in `<Label>` unless description present, then use `useId()` + `htmlFor`
 - Prefer `aria-label` over `sr-only` text
 
 ### Component API Rules
 - Expose `className` and `style` on every component
 - Prefer explicit over clever: `variant="destructive"` over `danger={true}`
-- Use compound components and render props over config objects for complex components
-- Use React Context within compound components — avoid prop drilling
-- No runtime dependencies beyond React and Base UI (Tailwind is build-time, motion is opt-in per component)
-
-### Static Data Rule
-- Define static arrays/objects outside the component function, never inside
+- Compound components + render props for complex components
+- React Context within compound components — no prop drilling
+- No runtime dependencies beyond React and Base UI
 
 ### Build Workflow
 ```bash
@@ -408,11 +474,10 @@ pnpm shadcn build                   # generate registry.json + public/r/
 
 ---
 
-## 9. Design Token System
+## 10. Design Token System
 
 All colors, spacing, radius, and shadow values will use CSS custom properties.
 
-### Naming Convention
 ```css
 /* Colors */
 --color-background
@@ -437,24 +502,24 @@ All colors, spacing, radius, and shadow values will use CSS custom properties.
 /* Typography */
 --font-sans     /* Geist Sans */
 --font-mono     /* Geist Mono */
---font-display  /* Geist Pixel (display use only) */
+--font-display  /* Geist Pixel — display/headings only */
 ```
 
-Light/dark values are set inside `@variant dark { ... }` in `globals.css`, toggled by `next-themes` via `.dark` on `<html>`.
+Light/dark values set inside `@variant dark { ... }` in `globals.css`, toggled by `next-themes` via `.dark` on `<html>`.
 
 ---
 
-## 10. Next Steps (Ordered)
+## 11. Next Steps (Ordered)
 
 - [ ] Run bootstrap: `pnpm dlx shadcn@latest init --preset aH32 --base base --template next`
-- [ ] Add manual dependencies: `motion`, `next-themes`, `fumadocs-core`, `fumadocs-mdx`, `fumadocs-ui`, `@biomejs/biome`
+- [ ] Add manual dependencies: `motion`, `next-themes`, `fumadocs-core`, `fumadocs-mdx`, `fumadocs-ui`, `@hugeicons/react`, `@hugeicons/core-free-icons`, `@biomejs/biome`
 - [ ] Configure `biome.json`
-- [ ] Configure Tailwind v4 dark mode: add `@variant dark (&:where(.dark, .dark *))` to `globals.css`
+- [ ] Configure Tailwind v4 dark mode: `@variant dark (&:where(.dark, .dark *))` in `globals.css`
 - [ ] Set up `next-themes` `ThemeProvider` in `app/layout.tsx`
-- [ ] Set up Geist fonts via `next/font/local` or `geist` npm package
+- [ ] Set up Geist fonts
 - [ ] Set up Fumadocs: `lib/source.ts`, `next.config.ts` MDX plugin, `(docs)` route group
 - [ ] Define CSS design token system in `globals.css`
 - [ ] Write `AGENTS.md` at repo root
-- [ ] Build first component: **Button** (establishes all patterns)
+- [ ] Build first component: **Button**
 - [ ] Set up registry workflow scripts
-- [ ] Write first doc page for Button in `content/docs/button.mdx`
+- [ ] Write first doc page: `content/docs/button.mdx`
