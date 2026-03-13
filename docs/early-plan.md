@@ -1,333 +1,372 @@
 # Dusk UI — Early Plan v2
 
 > Based on deep analysis of Pure UI ([MusKRI/pure-ui](https://github.com/MusKRI/pure-ui))  
-> Status: **Draft — awaiting discussion with Mohamed before final plan**  
+> Approach: **Fork & Rebrand** — not greenfield  
+> Status: Draft — awaiting discussion before final plan  
 > Date: March 13, 2026
 
 ---
 
-## What Changed from v1
+## Approach
 
-The previous early plan was built around coss UI patterns (Fumadocs, CVA, Hugeicons, `useRender`). This version pivots to **Pure UI as the primary reference** because:
+Dusk UI starts as a fork of Pure UI. The codebase is production-quality, the architecture is already correct, and the animation system is exactly what we want. Instead of rebuilding from scratch, we:
 
-1. Pure UI has the best Motion/React integration in the ecosystem — clean separation between CSS animations (components) and Motion (demos)
-2. Its animation preset system (`cssAnimationPresets` + `cssTransitionPresets`) is the most composable enter/exit pattern we've seen
-3. It uses `tailwind-variants` (slots support) instead of CVA — better for compound components
-4. The Tabs sliding indicator and ResizeObserver height animation solve real problems elegantly without JS libs
-5. The shadcn CLI registry distribution model is proven and already built out in Pure UI
+1. Fork the repo
+2. Run a full rebrand (Phase 1) — remove all traces of Pure UI, Krishna, and MusKRI
+3. Incrementally evolve the library into Dusk UI's own identity
 
----
-
-## Project Name & Identity
-
-- **Name:** Dusk UI
-- **Tagline:** TBD — to discuss
-- **Model:** Copy-paste, not installed as a black box (same as shadcn/ui, Pure UI, coss UI)
-- **Distribution:** `npx shadcn add https://dusk-ui.com/registry/<component>`
-- **Target:** React 19 + Tailwind CSS v4 + Base UI apps
+This saves weeks of scaffolding work and lets us focus immediately on design and component additions.
 
 ---
 
-## Stack Decisions
+## What Changed from v1 Plan
 
-| Decision | Choice | Rationale |
-|---|---|---|
-| Framework | Next.js 16 (App Router, Turbopack) | Same as Pure UI; mature App Router, fast builds |
-| React | 19.x | Concurrent features, Actions, compiler |
-| Base UI | 1.0.0 | Stable; all primitives we need are available |
-| Styling | Tailwind CSS v4 | `@import "tailwindcss"`, no config file, `@theme inline` bridge |
-| Variant util | `tailwind-variants` (`tv()`) | Slots support; better TypeScript inference than CVA |
-| Animation (components) | CSS `data-starting-style` / `data-ending-style` | Zero JS, Base UI lifecycle hooks, native `@starting-style` |
-| Animation (demos) | Motion v12 (`motion/react`) | `AnimatePresence`, layout, springs — doc site only |
-| Linter + Formatter | Biome 2.x | Single tool, fast |
-| TypeScript | 5.9, strict | Full type safety |
-| Package manager | pnpm | |
-| Node | 22.x | Enforced via `engines` |
-| Color system | OKLCH | Perceptually uniform, great dark mode |
-| Icon set | TBD (to discuss — @tabler or @hugeicons or lucide) | |
-| Docs framework | TBD (to discuss — Fumadocs vs next-mdx-remote like Pure UI) | |
-| State (Toast) | Zustand | Lightweight, no provider needed |
-| React compiler | `babel-plugin-react-compiler` | Auto-memoization |
+The previous early plan described a **greenfield build** from scratch. That is now obsolete.
 
----
-
-## Folder Structure (Proposed)
-
-Directly modeled on Pure UI's structure with minor naming updates:
-
-```
-dusk-ui/
-│
-├── src/
-│   ├── app/
-│   │   ├── layout.tsx              ← Root layout (fonts, providers)
-│   │   ├── (home)/                 ← Landing page
-│   │   └── (app)/
-│   │       ├── layout.tsx          ← App shell
-│   │       ├── docs/               ← Docs routes
-│   │       └── blocks/             ← Block demo routes
-│   │
-│   ├── core/                       ← Doc-site infrastructure (NOT distributed)
-│   │   ├── components/
-│   │   │   ├── composed/           ← Header, Sidebar, MobileMenu, ThemeToggle
-│   │   │   └── mdx/                ← MDX component registry + renderers
-│   │   ├── hooks/                  ← useActiveSection, etc.
-│   │   ├── providers/              ← ThemeProvider, ToastProvider
-│   │   ├── events/                 ← Analytics helpers
-│   │   └── icons/                  ← Icon wrappers
-│   │
-│   ├── registry/
-│   │   └── dusk-ui/
-│   │       ├── ui/                 ← The components (one folder per component)
-│   │       ├── lib/                ← cn() bundled with components
-│   │       ├── examples/           ← Per-component demo files
-│   │       ├── blocks/             ← Full section/page blocks
-│   │       ├── registry.ts         ← Hand-maintained component manifest
-│   │       └── __index__.tsx       ← AUTO-GENERATED barrel (never edit)
-│   │
-│   ├── lib/
-│   │   └── classes.ts              ← cn() (clsx + tailwind-merge)
-│   │
-│   ├── scripts/
-│   │   └── build-registry.ts       ← Generates __index__.tsx
-│   │
-│   ├── styles/
-│   │   ├── globals.css             ← Design tokens + Tailwind v4 setup
-│   │   └── partials/               ← Partial CSS (animations, typography, etc.)
-│   │
-│   ├── content/                    ← MDX documentation
-│   └── types/                      ← Global TypeScript ambient declarations
-│
-├── registry.json                   ← shadcn CLI public manifest (auto-generated)
-├── components.json                 ← shadcn CLI config
-├── biome.json
-├── next.config.ts
-├── tsconfig.json
-└── package.json
-```
-
----
-
-## Component Roadmap (Phase 1 — Foundation)
-
-These 27 components mirror Pure UI's initial set, grouped by build order:
-
-### Tier 1 — Primitives (no deps, build first)
-
-| Component | Base UI Primitive | Key Design Decisions |
-|---|---|---|
-| `Button` | `@base-ui/react/button` | `variant`, `size`, `radius` as 3 separate `tv()` axes |
-| `Badge` | — (styled `<span>`) | `tv()` variants |
-| `Spinner` | — (SVG) | Size prop mapped to px values |
-| `Separator` | `@base-ui/react/separator` | Horizontal/vertical via `orientation` |
-| `Label` | — (styled `<label>`) | Pairs with form inputs |
-| `Kbd` | — (styled `<kbd>`) | Keyboard shortcut display |
-| `Avatar` | `@base-ui/react/avatar` | Image + fallback |
-
-### Tier 2 — Form Inputs
-
-| Component | Base UI Primitive | Key Design Decisions |
-|---|---|---|
-| `Input` | native `<input>` | Ring/error states, slot-based |
-| `Textarea` | native `<textarea>` | Optional auto-resize |
-| `InputGroup` | — | `tv()` slots: `root`, `addon`, `input` |
-| `InputOTP` | `input-otp` pkg | Segmented OTP |
-| `Checkbox` | `@base-ui/react/checkbox` | CSS-animated checkmark |
-| `RadioGroup` | `@base-ui/react/radio-group` | CSS-animated indicator |
-| `Switch` | `@base-ui/react/switch` | Animated thumb |
-| `NumberField` | `@base-ui/react/number-field` | Stepper buttons |
-| `Select` | `@base-ui/react/select` | Animated popup |
-| `Combobox` | `@base-ui/react/combobox` | Filterable dropdown |
-
-### Tier 3 — Layout & Display
-
-| Component | Base UI Primitive | Key Design Decisions |
-|---|---|---|
-| `Card` | — | `tv()` slots: `root`, `header`, `body`, `footer`, `image` |
-| `ScrollArea` | `@base-ui/react/scroll-area` | Custom scrollbar styling |
-| `ButtonGroup` | — | Shared border collapse |
-
-### Tier 4 — Animated Overlays (CSS presets required)
-
-| Component | Base UI Primitive | Animation Presets |
-|---|---|---|
-| `Dialog` | `@base-ui/react/dialog` | 11 presets · nested dialog CSS var · wipe/flip/slide |
-| `Sheet` | `@base-ui/react/dialog` | rightSlide / leftSlide / topSlide / bottomSlide |
-| `Popover` | `@base-ui/react/popover` | fade / scale |
-| `Tooltip` | `@base-ui/react/tooltip` | fade / scale |
-| `Toast` | Zustand + custom | slide + Zustand queue |
-
-### Tier 5 — Animated Disclosure
-
-| Component | Base UI Primitive | Animation Presets |
-|---|---|---|
-| `Accordion` | `@base-ui/react/accordion` | 6 presets · `default/card/swiss` variants · 25 easings |
-| `Collapsible` | `@base-ui/react/collapsible` | CSS height animation |
-| `Tabs` | `@base-ui/react/tabs` | Sliding indicator · ResizeObserver height · `segmented/underline/card` |
-
----
-
-## Design Token System (Proposed)
-
-All in OKLCH. Tailwind v4 `@theme inline` bridges tokens to utility classes.
-
-```css
-/* src/styles/globals.css */
-@import "tailwindcss";
-@import "tw-animate-css";
-@import "./partials/index.css";
-
-@custom-variant dark (&:where(.dark, .dark *));
-
-:root {
-  /* Radius */
-  --radius: 0.625rem;
-
-  /* Core surfaces */
-  --background:            oklch(1 0 0);
-  --foreground:            oklch(0.21 0.006 285.885);
-  --border:                oklch(0 0 0 / 10%);
-  --input:                 oklch(0 0 0 / 10%);
-  --ring:                  oklch(0.705 0.015 286.067);
-
-  /* Brand */
-  --primary:               oklch(0.274 0.006 286.033);
-  --primary-foreground:    oklch(0.985 0 0);
-  --secondary:             oklch(0 0 0 / 4%);
-  --secondary-foreground:  oklch(0.21 0.006 285.885);
-
-  /* Surfaces */
-  --card:                  oklch(1 0 0);
-  --card-foreground:       oklch(0.21 0.006 285.885);
-  --popover:               oklch(1 0 0);
-  --popover-foreground:    oklch(0.21 0.006 285.885);
-  --muted:                 oklch(0 0 0 / 4%);
-  --muted-foreground:      oklch(0.442 0.017 285.786);
-  --accent:                oklch(0 0 0 / 4%);
-  --accent-foreground:     oklch(0.21 0.006 285.885);
-
-  /* Semantic states */
-  --destructive:           oklch(0.637 0.237 25.331);
-  --destructive-foreground:oklch(0.505 0.213 27.518);
-  --success:               oklch(0.696 0.17 162.48);
-  --success-foreground:    oklch(0.508 0.118 165.612);
-  --warning:               oklch(0.769 0.188 70.08);
-  --warning-foreground:    oklch(0.555 0.163 48.998);
-  --info:                  oklch(0.623 0.214 259.815);
-  --info-foreground:       oklch(0.488 0.243 264.376);
-
-  /* Sidebar */
-  --sidebar:               oklch(0.985 0 0);
-  /* ...full sidebar palette */
-}
-
-.dark {
-  /* Inverted token values — TBD after brand direction is set */
-}
-
-@theme inline {
-  /* Bridge CSS vars → Tailwind utilities */
-  --color-background:   var(--background);
-  --color-foreground:   var(--foreground);
-  --color-primary:      var(--primary);
-  /* ...etc */
-  --radius-sm:   calc(var(--radius) - 4px);
-  --radius-md:   calc(var(--radius) - 2px);
-  --radius-lg:   var(--radius);
-  --radius-xl:   calc(var(--radius) + 4px);
-  --radius-2xl:  calc(var(--radius) + 8px);
-}
-```
-
----
-
-## Animation System Plan
-
-### cssAnimationPresets to implement (full set)
-
-| Preset | What animates |
+| Old Approach | New Approach |
 |---|---|
-| `none` | No animation |
-| `fade` | opacity + height |
-| `scale` | scale + opacity + height (origin-top) |
-| `slide` | translateY + opacity + height |
-| `topSlide` | translateY negative (slides down from top) |
-| `bottomSlide` | translateY positive (slides up from bottom) |
-| `leftSlide` | translateX negative |
-| `rightSlide` | translateX positive |
-| `topFlip` | rotateX from top with perspective |
-| `bottomFlip` | rotateX from bottom with perspective |
-| `leftFlip` | rotateY from left with perspective |
-| `rightFlip` | rotateY from right with perspective |
-| `wipe` | `clip-path: inset()` curtain reveal |
-| `perspective` | rotateX(90deg) + perspective(1000px) |
-| `perspectiveBlur` | perspective + blur(9px) |
-
-### cssTransitionPresets to implement (25 named easings)
-
-inExpo · outExpo · inOutExpo · anticipate · quickOut · overshootOut · swiftOut · snappyOut · in · out · inOut · outIn · inQuad · outQuad · inOutQuad · inCubic · outCubic · inOutCubic · inQuart · outQuart · inOutQuart · inQuint · outQuint · inOutQuint · inCirc · outCirc · inOutCirc · inOutBase
+| Create new Next.js app | Fork Pure UI repo |
+| Set up Tailwind v4 from scratch | Already configured |
+| Build animation system | Already built — adopt it |
+| Set up shadcn registry pipeline | Already working |
+| 27 components to build | 27 components already exist — evolve them |
+| Weeks of scaffolding | Phase 1 = ~1 day of renaming |
 
 ---
 
-## Open Questions (for discussion)
+## Phase 1 — Fork & Rebrand
 
-These are the key decisions we need to make together before writing the final plan:
+This phase has one goal: **zero traces of Pure UI remain**. The app must build cleanly and look like Dusk UI from the first commit.
 
-### Q1 — Docs Framework
-**Option A:** `next-mdx-remote` (Pure UI approach) — full control, custom MDX components, no framework lock-in  
-**Option B:** Fumadocs — batteries-included, search, sidebar config, less custom work  
-→ **Recommendation:** Discuss tradeoffs; Pure UI's MDX system is well-architected and highly customizable
+### Step 1 — Fork
 
-### Q2 — Icon Set
-**Option A:** `@tabler/icons-react` (Pure UI uses this) — 5000+ icons, consistent stroke style, free  
-**Option B:** `@hugeicons/react` (coss UI approach) — unique style, paid tier for full set  
-**Option C:** `lucide-react` — most common in ecosystem  
-→ **To decide:** Does Dusk UI have a preferred icon style/brand?
-
-### Q3 — Typography / Display Font
-Pure UI uses `Chillax` (geometric sans) for headings + `Noto Mono` for code.  
-→ **To decide:** What fonts define Dusk UI's visual identity?
-
-### Q4 — Component API — `ButtonGroup` vs `Button` composition
-**Option A:** `<ButtonGroup>` wrapping `<Button>` elements (Pure UI approach)  
-**Option B:** `<Button>` with `groupFirst`/`groupMiddle`/`groupLast` props  
-→ Pure UI's approach is cleaner and more composable
-
-### Q5 — Toast Architecture
-Pure UI uses **Zustand** for the toast queue — a store outside React tree, imperatively called via `toast.add(...)`.  
-→ Should Dusk UI match this (no provider needed) or use a React context provider?
-
-### Q6 — Additional Component Tiers
-Pure UI has 27 components. Should Phase 2 of Dusk UI add:  
-- Data components (`Table`, `DataGrid`)  
-- Navigation (`NavigationMenu`, `Breadcrumb`, `Pagination`)  
-- Feedback (`Progress`, `Skeleton`, `Alert`)  
-- Form (`DatePicker`, `Slider`, `ColorPicker`)  
-→ **To prioritize together**
-
-### Q7 — Brand Color
-Pure UI is monochrome (near-black primary). Should Dusk UI have:  
-**Option A:** A distinct brand color (blue, violet, etc.)  
-**Option B:** Neutral/monochrome like Pure UI (timeless, works everywhere)  
-→ **Mohamed's call**
-
-### Q8 — `radius` variant on Button
-Pure UI exposes `radius` as a first-class `tv()` variant axis.  
-→ Keep this? It's useful but adds API surface area.
+```bash
+# Fork MusKRI/pure-ui to your GitHub account
+# Clone locally
+git clone https://github.com/<your-username>/dusk-ui
+cd dusk-ui
+```
 
 ---
 
-## What's Definitely Decided (Not Up for Discussion)
+### Step 2 — Delete Infrastructure Files
 
+These files are Pure UI's deployment infrastructure (Docker VPS deploy). Dusk UI will deploy to Vercel — none of these are needed.
+
+| File/Folder | Reason to Delete |
+|---|---|
+| `Dockerfile` | Pure UI deploys via Docker on a VPS |
+| `docker-compose.yml` | Same |
+| `proxy.ts` | Local proxy for the VPS Docker setup |
+| `.github/workflows/deploy.yml` | SSH + `docker compose up` to Krishna's server |
+| `.github/` | Delete the entire folder — no workflows needed initially |
+| `.env.example` | Contains `NEXT_PUBLIC_OPENPANEL_CLIENT_ID` (Krishna's analytics slot) |
+
+```bash
+rm Dockerfile docker-compose.yml proxy.ts .env.example
+rm -rf .github
+```
+
+---
+
+### Step 3 — Rename the Registry Folder
+
+The entire component library lives under `src/registry/pure-ui/`. Rename it:
+
+```bash
+mv src/registry/pure-ui src/registry/dusk-ui
+```
+
+This renames the folder but breaks all imports. Fix with a global find-and-replace in the next step.
+
+---
+
+### Step 4 — Global Find-and-Replace (String Level)
+
+Run these replacements across the **entire repo** (use your editor's global search, or `sed`/`grep`):
+
+| Find | Replace | Scope |
+|---|---|---|
+| `@/registry/pure-ui/` | `@/registry/dusk-ui/` | All `.tsx` `.ts` `.mdx` files |
+| `"pure-ui"` | `"dusk-ui"` | All files |
+| `"Pure UI"` | `"Dusk UI"` | All files |
+| `PureUI` | `DuskUI` | All files |
+| `pureUI` | `duskUI` | All files |
+| `pure-ui` (kebab, non-path) | `dusk-ui` | All files |
+| `pure.kam-ui.com` | `dusk-ui.com` (or placeholder) | All files |
+| `MusKRI` | `<your-github-username>` | All files |
+| `Krishna` | `<your-name>` | All files |
+| `Built by Krishna` | `Built by Mohamed` | `layout.tsx` |
+
+> ⚠️ After running these, do a repo-wide search for `pure` and `Pure` to catch any stragglers.
+
+---
+
+### Step 5 — File-by-File Updates
+
+Some files need manual edits beyond string replacement:
+
+#### `package.json`
+```json
+{
+  "name": "dusk-ui",
+  ...
+}
+```
+Also remove any Docker-related scripts if present.
+
+---
+
+#### `src/app/layout.tsx`
+```tsx
+export const metadata: Metadata = {
+  title: "Dusk UI",
+  description: "<your tagline>",
+};
+```
+
+---
+
+#### `src/app/(home)/page.tsx`
+```tsx
+// Change the two RollingText components:
+<RollingText
+  text="Dusk"
+  speed={0.05}
+  duration={3}
+  className="text-5xl uppercase sm:text-7xl lg:text-8xl font-semibold"
+/>
+<RollingText
+  text="UI"
+  speed={0.05}
+  duration={3}
+  className="text-5xl uppercase sm:text-7xl lg:text-8xl font-semibold"
+/>
+
+// Change the tagline <p>:
+<p className="mx-auto max-w-md text-lg text-foreground/80 font-light">
+  <your tagline here>
+</p>
+```
+
+---
+
+#### `src/core/components/composed/logo.tsx`
+```tsx
+// Rename the function:
+export function DuskUILogo(props: SVGProps<SVGSVGElement>) {
+  // The SVG itself can stay for now — replace with Dusk UI logo in Phase 2
+}
+```
+
+---
+
+#### `src/core/components/composed/header/github-button.tsx`
+```tsx
+// Update both the fetch URL and the Link href:
+const data = await fetch("https://api.github.com/repos/<your-username>/dusk-ui", {
+  next: { revalidate: 3600 },
+});
+
+<Link
+  href="https://github.com/<your-username>/dusk-ui"
+  target="_blank"
+  rel="noreferrer"
+/>
+```
+
+---
+
+#### `components.json`
+```json
+{
+  "registries": {
+    "@duskui": "https://dusk-ui.com/r/{name}.json"
+  }
+}
+```
+
+---
+
+#### `src/registry/dusk-ui/registry.ts` (after folder rename)
+```ts
+export const registry = {
+  name: "Dusk UI",
+  homepage: "https://dusk-ui.com",
+  items: z.array(registryItemSchema).parse([
+    { name: "index", ...DUSK_UI_STYLE },
+    ...duskUIComponents,
+    ...duskUILib,
+    ...duskUICompExamples,
+    ...duskUIBlocks,
+  ]),
+} satisfies Registry;
+```
+
+---
+
+#### `src/core/events/openpanel.tsx` — Analytics
+
+**Option A (Recommended for now):** Strip analytics entirely to avoid Krishna's key being active:
+```tsx
+// Replace entire file contents with:
+export const Analytics = () => null;
+```
+Then remove `@openpanel/nextjs` and `@wandry/analytics-sdk` from `package.json` and reinstall.
+
+**Option B:** Register your own OpenPanel project at https://openpanel.dev and replace `NEXT_PUBLIC_OPENPANEL_CLIENT_ID` with your key.
+
+---
+
+#### `src/content/*.mdx` — Docs Installation Commands
+
+Every MDX file contains installation commands like:
+```bash
+npx shadcn add https://pure.kam-ui.com/r/button.json
+```
+Bulk replace across all content files:
+```
+https://pure.kam-ui.com/r/  →  https://dusk-ui.com/r/
+```
+
+---
+
+#### `README.md`
+Rewrite from scratch — new name, description, install instructions.
+
+---
+
+### Step 6 — Verify Build
+
+```bash
+pnpm install        # reinstall after package.json changes
+pnpm build          # should complete with no errors
+pnpm dev            # visually verify: name shows "Dusk UI" everywhere
+```
+
+Do a final visual pass on:
+- [ ] Browser tab title says "Dusk UI"
+- [ ] Header logo/name correct
+- [ ] Home page rolling text says "Dusk" + "UI"
+- [ ] Home page tagline is yours
+- [ ] GitHub button links to your repo
+- [ ] No console errors
+- [ ] No "Pure UI" or "Krishna" or "MusKRI" visible anywhere
+- [ ] `pnpm build` passes cleanly
+
+---
+
+### Phase 1 Checklist (Ordered)
+
+```
+[ ] 1.  Fork MusKRI/pure-ui → your GitHub account, rename to dusk-ui
+[ ] 2.  Clone locally
+[ ] 3.  Delete: Dockerfile, docker-compose.yml, proxy.ts, .env.example
+[ ] 4.  Delete: .github/ (entire folder)
+[ ] 5.  mv src/registry/pure-ui → src/registry/dusk-ui
+[ ] 6.  Global find-replace all brand strings (see table in Step 4)
+[ ] 7.  Repo-wide search for "pure" / "Pure" — catch stragglers
+[ ] 8.  package.json: name → "dusk-ui", remove Docker scripts
+[ ] 9.  src/app/layout.tsx: title + description
+[ ] 10. src/app/(home)/page.tsx: RollingText + tagline
+[ ] 11. src/core/components/composed/logo.tsx: rename PureUILogo → DuskUILogo
+[ ] 12. github-button.tsx: repo URL → your repo
+[ ] 13. components.json: registry URL → dusk-ui.com
+[ ] 14. src/registry/dusk-ui/registry.ts: name, homepage, import names
+[ ] 15. src/core/events/openpanel.tsx: strip or replace with your analytics
+[ ] 16. src/content/*.mdx: bulk replace installation command URLs
+[ ] 17. README.md: rewrite
+[ ] 18. pnpm install
+[ ] 19. pnpm build — must pass cleanly
+[ ] 20. pnpm dev — visual verification pass
+```
+
+---
+
+## Phase 2 — Visual Identity (After Phase 1 is clean)
+
+Once the rebrand is done and the build is clean, the next layer is Dusk UI's own visual identity. These are **not blockers** for Phase 1 — they come after.
+
+| Task | Details |
+|---|---|
+| Logo | Design a Dusk UI SVG logo, replace the grid SVG in `logo.tsx` |
+| Favicon | Replace `src/app/favicon.ico` |
+| Brand color | Decide: monochrome (like Pure UI) or a distinct color (violet, amber, etc.) |
+| Dark mode tokens | Finalize `.dark {}` OKLCH values in `globals.css` |
+| Typography | Decide on heading font — Pure UI uses Chillax; keep or replace |
+| Tagline | Finalize the hero tagline on `(home)/page.tsx` |
+| og:image / SEO | Add `opengraph-image.tsx` to the app route |
+
+---
+
+## Phase 3 — Incremental Component Evolution
+
+After the visual identity is set, we begin diverging from Pure UI component by component. Not all 27 need to change — only those where Dusk UI has a different design opinion.
+
+Priority order (most visible → least visible):
+
+1. `Button` — primary brand touchpoint; finalize `variant`/`size`/`radius` values
+2. `Dialog` / `Sheet` — most complex; verify all 11 animation presets work correctly after rename
+3. `Accordion` — verify `swiss` variant intact after rename
+4. `Tabs` — verify sliding indicator and `ResizeObserver` height animation
+5. `Toast` — verify Zustand store works, update Zustand actions if needed
+6. `Input` / `InputGroup` — adjust ring/border tokens to match Dusk UI palette
+7. `Card` — adjust shadow/border tokens
+8. Everything else — incremental polish
+
+---
+
+## Phase 4 — New Components
+
+Components Pure UI does not have that Dusk UI will add. **To be prioritized together after Phase 3 is stable.**
+
+Candidates:
+- `Alert` / `AlertDialog`
+- `Progress` / `Meter`
+- `Skeleton`
+- `Breadcrumb`
+- `Pagination`
+- `Table`
+- `NavigationMenu`
+- `DatePicker` (uses `react-day-picker` — already a dep)
+- `Slider`
+- `Command` / `CommandPalette`
+
+---
+
+## Open Questions (Discuss Before Final Plan)
+
+These do not block Phase 1. They need answers before we write the final plan.
+
+| # | Question | Options |
+|---|---|---|
+| Q1 | **Docs framework** | A: Keep `next-mdx-remote` (Pure UI way — full control) · B: Migrate to Fumadocs (batteries-included) |
+| Q2 | **Icon set** | A: Keep `@tabler/icons-react` (already in Pure UI) · B: `lucide-react` · C: `@hugeicons/react` |
+| Q3 | **Typography / heading font** | A: Keep Chillax (Pure UI) · B: Replace with a font that fits "Dusk" identity |
+| Q4 | **Brand color** | A: Monochrome/neutral (timeless, like Pure UI) · B: Distinct color (violet, amber, slate-blue, etc.) |
+| Q5 | **Toast API** | A: Keep Zustand imperative `toast.add(...)` · B: React context provider |
+| Q6 | **Analytics** | A: OpenPanel (register own account) · B: Vercel Analytics · C: Strip entirely for now |
+| Q7 | **`radius` variant on Button** | A: Keep as first-class `tv()` axis · B: Remove, leave to `className` |
+| Q8 | **Domain / URL** | What is the final domain? (needed for `components.json` registry URL and MDX install commands) |
+
+---
+
+## What Is Already Decided
+
+These are **locked** — not up for discussion:
+
+- Fork Pure UI as the starting point (not greenfield)
 - Base UI 1.0 as primitive layer
-- `tailwind-variants` (not CVA)
+- `tailwind-variants` (`tv()`) — not CVA
 - CSS `data-starting-style` / `data-ending-style` for all component animations
+- Motion v12 for doc site demos only — never inside registry components
 - OKLCH color system
-- shadcn CLI distribution via `registry.json`
-- Biome for linting/formatting
+- shadcn CLI `registry.json` distribution
+- Biome for linting and formatting
 - React 19 + TypeScript 5.9 strict
-- The full `cssAnimationPresets` + `cssTransitionPresets` system
-- `data-slot` on every sub-part
-- The `build-registry.ts` → `shadcn build` pipeline
-- Named exports only, no default exports
-- `pnpm` + Node 22.x
+- The full `cssAnimationPresets` + `cssTransitionPresets` system (15 presets, 25 easings)
+- `data-slot` on every compound sub-part
+- `build-registry.ts` → `shadcn build` → `registry.json` pipeline
+- Named exports only (no default exports for components)
+- pnpm + Node 22.x
+- Vercel for deployment (not Docker VPS)
